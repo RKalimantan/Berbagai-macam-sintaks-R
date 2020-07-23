@@ -1,0 +1,91 @@
+# Fungsi merupakan fungsi klasifikasi K- Nearest Neighbor
+# Fungsi dapat dipanggil dengan cara KNN(data_train, data_test, k= jumlah tetangga terdekat, jrk="euclid")
+# Jarak yang digunakan ada euclid, gower, manhattan, minkowski, dan chi-square.
+# Data train berupa data frame dengan kolom klasfikasi berada di kolom terakhir.
+# Data test berupa data frame tanpa kolom klasifikasi.
+
+KNN <- function(train, tst, k=1, jrk="gower", p=1.5) {
+  trn <- train[-ncol(train)]
+  cls<- c()
+  for (l in 1:nrow(tst)){
+    if (jrk=="gower"){
+    x<-matrix(data=0, nrow=nrow(trn), ncol=ncol(trn))
+    for (i in 1:(ncol(trn))) {
+      for (j in 1:nrow(trn)) {
+        if (is.numeric(trn[j,i])|is.integer(trn[j,i])) {
+          x[j,i]=abs(trn[j,i]-as.numeric(tst[l,i]))/(max(trn[i])-min(trn[i]))
+        }
+        else {
+          if(trn[j,i]!=tst[l,i]){
+            x[j,i] <- 1
+          }
+          else {
+            x[j,i] <-0
+          }
+        }
+      }
+    }
+    x
+    distance=rowSums(x)
+    }
+    else if(jrk=="euclid") {
+      x<-matrix(data=0, nrow=nrow(trn), ncol=ncol(trn))
+      for (i in 1:nrow(trn)){
+        for (j in 1:ncol(trn)){
+          x[i,j]=(trn[i,j]-tst[l,j])^2
+        }
+      }
+      distance=sqrt(rowSums(x))
+    }
+    else if(jrk=="manhattan") {
+      x<-matrix(data=0, nrow=nrow(trn), ncol=ncol(trn))
+      for (i in 1:nrow(trn)){
+        for (j in 1:ncol(trn)){
+          x[i,j]=abs(trn[i,j]-tst[l,j])
+        }
+      }
+      distance=rowSums(x)
+    }
+    else if(jrk=="chebyshev") {
+      x<-matrix(data=0, nrow=nrow(trn), ncol=ncol(trn))
+      for (i in 1:nrow(trn)){
+        for (j in 1:ncol(trn)){
+          x[i,j]=abs(trn[i,j]-tst[l,j])
+        }
+      }
+      for (i in 1:nrow(x)){
+      distance[i]=max(x[i,])
+      }
+    }
+    else if(jrk=="minkowski") {
+      x<-matrix(data=0, nrow=nrow(trn), ncol=ncol(trn))
+      for (i in 1:nrow(trn)){
+        for (j in 1:ncol(trn)){
+          x[i,j]=(abs(trn[i,j]-tst[l,j]))^(p)
+        }
+      }
+      distance=(rowSums(x))^(1/p)
+    }
+    else if(jrk=="chi-square") {
+      x<-matrix(data=0, nrow=nrow(trn), ncol=ncol(trn))
+      for (i in 1:nrow(trn)){
+        for (j in 1:ncol(trn)){
+          x[i,j]=((trn[i,j]-tst[l,j])^2)/(trn[i,j]+tst[l,j])
+        }
+      }
+      distance=rowSums(x)
+    } 
+    jarak = cbind(distance, train[ncol(train)])
+    jarak<-jarak[order(distance),]
+    print(jarak)
+    jarakk <- head(jarak, k)
+    c <- as.data.frame(table(jarakk$KL))
+    klasi<- c[c$Freq == max(c$Freq),-2]
+    cls[l]=(sapply(klasi, paste, collapse = ","))
+    print(cls[l])
+  }
+  cls 
+}
+
+#contoh cara memanggil KNN
+KNN(train, test, k=5, jrk="euclid")
