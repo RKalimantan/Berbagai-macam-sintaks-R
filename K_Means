@@ -1,0 +1,27 @@
+daf <- read.table(file.choose(), header=T)
+
+k_means <- function(daf, k, iter = 100) {
+  df=daf[-1]
+    jarak_ke_pusat <- matrix(data = 0, ncol = k, nrow = nrow(df))
+  center <- df[1:k,]
+  for (a in 1:iter) {
+  for (i in 1:k) {
+    jarak_antar_objek <- matrix(data = 0, ncol = ncol(df), nrow = nrow(df))
+    for (j in 1:nrow(df)){
+      for (l in 1:ncol(df)) {
+        jarak_antar_objek[j,l] <- (df[j,l]-center[i,l])^2
+      }
+    }
+    jarak_ke_pusat[,i] <- sqrt(rowSums(jarak_antar_objek))
+  }
+  x=as.data.frame(jarak_ke_pusat)
+  cluster <- colnames(x)[max.col(-x)]
+  cluster=as.data.frame(cluster)
+  y=as.data.frame(c(daf, cluster))
+  center <- aggregate(y[2:3], list(y$cluster), FUN = mean)[2:3]
+  }
+  rataan_klaster <- center
+  klaster <- y
+  return(list("Rataan_Klaster" = rataan_klaster, "Klaster" = klaster))
+} 
+Coba_coba = k_means(daf,2)
