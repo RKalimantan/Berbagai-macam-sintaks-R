@@ -1,0 +1,106 @@
+train<-read.table(file.choose(), header = TRUE)
+train
+str(train)
+
+test<-read.table(file.choose(), header = TRUE)
+test
+str(test)
+
+
+
+dist <- function(train, tst, k=1, jrk="gower", p=1.5, m=2) {
+  trn <- train[-ncol(train)]
+  cls<- c()
+  for (l in 1:nrow(tst)){
+    if (jrk=="gower"){
+      x<-matrix(data=0, nrow=nrow(trn), ncol=ncol(trn))
+      for (i in 1:(ncol(trn))) {
+        for (j in 1:nrow(trn)) {
+          if (is.numeric(trn[j,i])|is.integer(trn[j,i])) {
+            x[j,i]=abs(trn[j,i]-as.numeric(tst[l,i]))/(max(trn[i])-min(trn[i]))
+          }
+          else {
+            if(trn[j,i]!=tst[l,i]){
+              x[j,i] <- 1
+            }
+            else {
+              x[j,i] <-0
+            }
+          }
+        }
+      }
+      distance=rowSums(x)
+    }
+    else if(jrk=="euclid") {
+      x<-matrix(data=0, nrow=nrow(trn), ncol=ncol(trn))
+      for (i in 1:nrow(trn)){
+        for (j in 1:ncol(trn)){
+          x[i,j]=(trn[i,j]-tst[l,j])^2
+        }
+      }
+      distance=sqrt(rowSums(x))
+    }
+    else if(jrk=="manhattan") {
+      x<-matrix(data=0, nrow=nrow(trn), ncol=ncol(trn))
+      for (i in 1:nrow(trn)){
+        for (j in 1:ncol(trn)){
+          x[i,j]=abs(trn[i,j]-tst[l,j])
+        }
+      }
+      distance=rowSums(x)
+    }
+    else if(jrk=="chebyshev") {
+      x<-matrix(data=0, nrow=nrow(trn), ncol=ncol(trn))
+      for (i in 1:nrow(trn)){
+        for (j in 1:ncol(trn)){
+          x[i,j]=abs(trn[i,j]-tst[l,j])
+        }
+      }
+      for (i in 1:nrow(x)){
+        distance[i]=max(x[i,])
+      }
+    }
+    else if(jrk=="minkowski") {
+      x<-matrix(data=0, nrow=nrow(trn), ncol=ncol(trn))
+      for (i in 1:nrow(trn)){
+        for (j in 1:ncol(trn)){
+          x[i,j]=(abs(trn[i,j]-tst[l,j]))^(p)
+        }
+      }
+      distance=(rowSums(x))^(1/p)
+    }
+    else if(jrk=="chi-square") {
+      x<-matrix(data=0, nrow=nrow(trn), ncol=ncol(trn))
+      for (i in 1:nrow(trn)){
+        for (j in 1:ncol(trn)){
+          x[i,j]=((trn[i,j]-tst[l,j])^2)/(trn[i,j]+tst[l,j])
+        }
+      }
+      distance=rowSums(x)
+    }
+    jarak = cbind(distance, train[ncol(train)])
+    jarak<-jarak[order(distance),]
+    jarakk <- head(jarak, k)
+    level <- levels(train$KL)
+    nilai_anggota <- c()
+      for (o in 1:length(level)) {
+        miu <- c()
+        for (p in 1:k) {
+          if (jarakk$KL[p]==level[o]) {
+            miu[p] =  1
+          }
+          else {
+            miu[p] = 0
+          }
+        }
+        
+      nilai_anggota[o]  <- sum(miu*(jarakk$distance)^(-2/(m-1)))/sum((jarakk$distance)^(-2/(m-1)))
+      }
+    cls[l] <- level[which.max(nilai_anggota)]
+     }
+  cls 
+}
+
+a <- dist(train, test,jrk = "euclid", 3, m=40)
+a
+
