@@ -1,0 +1,45 @@
+mknn <- function(train, test, k=1){
+  trn <- train[,-(ncol(train))]
+  validitas <- c()
+    for (j in 1:nrow(trn)){
+      x <- matrix(data =0, nrow =nrow(trn), ncol = ncol(trn))
+      for (l in 1:nrow(trn)){
+        for (m in 1:ncol(trn)){
+          x[l,m] <- (trn[l,m]-trn[j,m])^2
+        }
+      }
+      distance <- sqrt(rowSums(x))
+      jarak <- cbind(distance,train[ncol(train)])
+      jarak <- head(jarak[order(distance),],k+1)
+      jarak <- jarak[-1,]
+      val <- c()
+      for (i in 1:k){
+      if (jarak[i,2]==train[j,ncol(train)]){
+        val[i]=1
+      }
+      else {
+        val[i]=0
+      }
+      }
+      validitas[j]=sum(val)/k
+      }
+  cls <- c()
+  for (j in 1:nrow(test)){
+    x <- matrix(data =0, nrow =nrow(trn), ncol = ncol(trn))
+    for (l in 1:nrow(trn)){
+      for (m in 1:ncol(trn)){
+        x[l,m] <- (trn[l,m]-test[j,m])^2
+      }
+    }
+    jarak <- sqrt(rowSums(x))
+    bobot <- validitas*(1/(jarak+0.5))
+    bobot_kelas <- cbind(bobot, train[ncol(train)])
+    bobot_kelas <- head(bobot_kelas[order(-bobot),],k)
+    c <- as.data.frame(table(bobot_kelas[2]))
+    klasi<- c[c$Freq == max(c$Freq),-2]
+    cls[j]=(sapply(klasi, paste, collapse = ","))
+    }
+  print(cls)
+}
+
+mknn(tr, test, k=3)
