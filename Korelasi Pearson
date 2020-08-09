@@ -1,0 +1,33 @@
+x<- c(1,4,5,6,4)
+y<- c(2,8,10,12,18)
+korelasi <- function (x,y, kor="pearson") {
+  if (kor=="pearson") {
+    n <- length(x)
+    sumx <- 0
+    sumy <- 0
+  for (i in 1:length(x)) {
+    sumx=sumx+x[i]
+    sumy=sumy+y[i]
+  }
+    meanx <- sumx/length(x)
+    meany <- sumy/length(y)
+    x_minus_rataan <- x-meanx
+    y_minus_rataan <- y-meany
+    x_minus_rataan_kuadrat <- x_minus_rataan^2
+    y_minus_rataan_kuadrat <- y_minus_rataan^2
+    x_y_minus_rataan <- x_minus_rataan*y_minus_rataan
+    jumlah_x_minus_rataan_kuadrat <- 0
+    jumlah_y_minus_rataan_kuadrat <- 0
+    jumlah_x_y_minus_rataan_kuadrat <- 0
+  for (i in 1:length(x)) {
+    jumlah_x_minus_rataan_kuadrat <- jumlah_x_minus_rataan_kuadrat + x_minus_rataan_kuadrat[i]
+    jumlah_y_minus_rataan_kuadrat <- jumlah_y_minus_rataan_kuadrat + y_minus_rataan_kuadrat[i]
+    jumlah_x_y_minus_rataan_kuadrat <- jumlah_x_y_minus_rataan_kuadrat + x_y_minus_rataan[i]
+  }
+    r <- (jumlah_x_y_minus_rataan_kuadrat/n)/sqrt((jumlah_x_minus_rataan_kuadrat/n)*(jumlah_y_minus_rataan_kuadrat/n))
+  }
+  print(r)
+}
+
+cor(x,y)
+korelasi (x,y)
