@@ -1,0 +1,72 @@
+daf <- read.table(file.choose(), header=T)
+dif  <- read.table(file.choose(), header=T)
+
+k_means <- function(daf, k, iter = 100, jarak="gower") {
+  df=daf[-1]
+    jarak_ke_pusat <- matrix(data = 0, ncol = k, nrow = nrow(df))
+   center <- df[1:k,]
+   
+   if (jarak=="gower"){
+   for (a in 1:iter){
+     for (i in 1:k){
+       jarak_antar_objek <- matrix(data = 0, ncol = ncol(df), nrow = nrow(df))
+       for (j in 1:nrow(df)){
+         for (l in 1:ncol(df)){
+           if (is.numeric(df[j,l])|is.integer(df[j,l])){
+             jarak_antar_objek[j,l] <- abs(df[j,l]-center[i,l])/(max(df[l])-min(df[l]))
+           }
+           else {
+             if (df[j,l]==center[i,l]){
+               jarak_antar_objek[j,l] <- 0
+             }
+             else {
+               jarak_antar_objek[j,l] <- 1
+             }
+           }
+         }
+       }
+       jarak_ke_pusat[,i]=rowSums(jarak_antar_objek)
+     }
+     x=as.data.frame(jarak_ke_pusat)
+     cluster <- colnames(x)[max.col(-x)]
+     cluster=as.data.frame(cluster)
+     y=as.data.frame(c(daf, cluster))
+     cari_center <- function(x){
+       if (is.numeric(x)|is.integer(x)){
+         cen = mean(x)
+       }
+       else {
+         a=data.frame(table(x))
+         cen = a[which.max(a$Freq),][,1]
+       }
+     }
+     center <- aggregate(y[2:ncol(daf)], list(y$cluster), FUN = cari_center)[2:ncol(daf)]
+   }
+   }
+   else if (jarak=="euclid"){
+  for (a in 1:iter) {
+  for (i in 1:k) {
+    jarak_antar_objek <- matrix(data = 0, ncol = ncol(df), nrow = nrow(df))
+    for (j in 1:nrow(df)){
+      for (l in 1:ncol(df)) {
+        jarak_antar_objek[j,l] <- (df[j,l]-center[i,l])^2
+      }
+    }
+    jarak_ke_pusat[,i] <- sqrt(rowSums(jarak_antar_objek))
+  }
+  x=as.data.frame(jarak_ke_pusat)
+  cluster <- colnames(x)[max.col(-x)]
+  cluster=as.data.frame(cluster)
+  y=as.data.frame(c(daf, cluster))
+  center <- aggregate(y[2:ncol(daf)], list(y$cluster), FUN = mean)[2:ncol(daf)]
+  }
+   }
+  rataan_klaster <- center
+  klaster <- y
+  return(list("Rataan_Klaster" = rataan_klaster, "Klaster" = klaster))
+} 
+
+
+
+b = k_means(dif,3, iter=1000, jarak ="gower")
+b
