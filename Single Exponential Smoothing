@@ -1,0 +1,26 @@
+data = c(5,42,2,43,35,5,2,12,33,4)
+SES <- function(data, alpha){
+  #Membuat Vektor Peramalan Ft
+  Ft = c()
+  #Menghitung peramalan
+  Ft[1] = data[1]
+  for (i in 2:length(data)){
+    Ft[i] = alpha*data[i-1]+(1-alpha)*Ft[i-1] 
+  }
+  #Peramalan 1 periode kedepan
+  F = alpha*data[length(data)]+(1-alpha)*Ft[length(data)] 
+  #Membuat vektor recentage Error (PE)
+  PE = c()
+  #Menghitung PE
+    for (i in 1:length(data)){
+    PE[i] = abs(Ft[i]-data[i])/data[i]*100
+    }
+  #menghitung MAPE
+  MAPE = mean(PE)
+  #Membuat data Frame Output
+  Output = data.frame(Data = data, Ft = Ft, PE = PE)
+  #mereturn Output
+  return(list(Perhitungan = Output, Forecasting_1_Periode = F, MAPE = MAPE))
+}
+
+SES(data, 0.1)
