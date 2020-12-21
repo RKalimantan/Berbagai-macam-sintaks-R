@@ -1,0 +1,81 @@
+Data = read.table(file.choose(), header = TRUE)
+Data
+fcm <- function(data, c, maxiter = 1000, eror = 0.00005, w = 2, U = matrix(abs(runif(n*c)),ncol = c, nrow = nrow(data))){
+  #Mendefinisikan Panjang data : n
+  n = nrow(data)
+  #Mendefinisikan banyaknya variabel data : m
+  m = ncol(data)
+  #Membangkitkan Matriks Partisi Miu : miu
+  miu = U/rowSums(U)
+  #Membuat vektor Fungsi Objektif
+  Pt = vector()
+  #Menghitung Pusat Klaster, FUngsi Objektif, dan Matriks Partisi U (iterasi)
+  for (q in 1:(maxiter)){
+    #Membuat matriks pusat Klaster : V
+    V = matrix(0, nrow=c,ncol=m)
+    #Menghitung pusat klaster
+    for (k in 1:c){
+      for (j in 1:m){
+        V[k,j] = sum((miu[,k]^w)*data[,j])/sum(miu[,k]^w)
+      }
+    }
+    #Membuat matriks bantu  untuk menghitung Fungsi Objektif : L
+    L = matrix(0, ncol = c, nrow = n)
+    #Menghitung Matriks Bantu L
+    for (k in 1:c){
+      a = (data-V[c,])^2
+      L[,k] = rowSums(a)*miu[,k]^2
+    }
+    #Menghitung FUngsi Objektif ke-q : Pt
+    Pt[q] = sum(L)
+    #Menghitung matriks partisi miu untuk iterasi ke-q : miu
+    for (i in 1:n){
+      for (k in 1:c){
+        g = 0
+        for (l in 1:c){
+          g = g + (sum(data[i,]-V[l,])^2)^(-1/(w-1)) 
+        }
+        miu[i,k] = ((sum(data[i,]-V[k,])^2)^(-1/(w-1)))/g
+      }
+    }
+    #Memberikan logika iterasi berhenti saat |Pt[q]-Pt[q-1]| < eror 
+    if (length(Pt) > 1 && abs((Pt[q]-Pt[q-1])) < eror){
+      break()
+    } 
+  }
+  #Membuat matriks jarak : jarak
+  jarak = matrix(0,nrow=n, ncol =c)
+  #Menghitung jarak data terhadapat pusat klaster
+  for (i in 1:c){
+    for (j in 1:n){
+      jarak[j,i] = sqrt(sum((data[j,]-V[i,])^2))
+    }
+  }
+  #Membuat vektor klaster : klaster
+  klaster = c()
+  #Klasterisasi
+  for (i in 1:n){
+    klaster[i] = which.max(-(jarak[i,]))
+  }
+  #Membuat vektor rata-rata variabel per klaster :rataan_klaster
+  rata_klaster = c()
+  #Menghitung rata-rata variabel per klaster
+  for (i in 1:max(klaster)){
+    rata_klaster[i]=colMeans(data[klaster==i,])
+  }
+  #Membuat vektor Sum Square Error untuk tiap kelas : SSE
+  SSE=c()
+  #Menghitung SSE
+  for (i in 1:n){
+    SSE[i] = sum((data[i,]-rata_klaster[klaster[i]])^2)
+  }
+  #Menghitung Within SSE : within_SSE
+  within_SSE = sum(SSE)
+  #Membuat list untuk output : Output
+  Output = list(Klaster = klaster, Within_SSE = within_SSE, Pusat_klaster = V, 
+                Fungsi_Objektif = Pt)
+  #Return  output
+  return(Output)
+}
+
+fcm(Data, 5, maxiter =5)
