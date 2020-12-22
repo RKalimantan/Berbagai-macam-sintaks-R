@@ -58,10 +58,10 @@ fcm <- function(data, c, maxiter = 1000, eror = 0.00005, w = 2, U = matrix(abs(r
     klaster[i] = which.max(-(jarak[i,]))
   }
   #Membuat vektor rata-rata variabel per klaster :rataan_klaster
-  rata_klaster = c()
+  rata_klaster = matrix(0, nrow = c, ncol = m)
   #Menghitung rata-rata variabel per klaster
   for (i in 1:max(klaster)){
-    rata_klaster[i]=colMeans(data[klaster==i,])
+    rata_klaster[i,]=colMeans(data[klaster==i,])
   }
   #Membuat vektor Sum Square Error untuk tiap kelas : SSE
   SSE=c()
@@ -73,7 +73,7 @@ fcm <- function(data, c, maxiter = 1000, eror = 0.00005, w = 2, U = matrix(abs(r
   within_SSE = sum(SSE)
   #Membuat list untuk output : Output
   Output = list(Klaster = klaster, Within_SSE = within_SSE, Pusat_klaster = V, 
-                Fungsi_Objektif = Pt)
+                Fungsi_Objektif = Pt, rata_klaster = rata_klaster)
   #Return  output
   return(Output)
 }
