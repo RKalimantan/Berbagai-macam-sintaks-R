@@ -1,0 +1,63 @@
+TES <- function(data,s,alpha = 0.5,
+                beta = 0.5,
+                gamma = 0.5, n = 5) {
+  #Membuat Vektor pemulusan baru :L
+  L <- c()
+  #Membuat Vektor estimasi tren
+  B <- c()
+  #Membuat Vektor estimasi  musiman
+  S <-  c()
+  #Membuat vektor Peramalan Data AKtual :F
+  Ramalan <- c()
+  # Menghitug nilai awal pemulusan ekponensial
+  L[1] <- mean(data[1:s])
+  #Menghitung milai awal pemulusan tren
+  B[1] <- mean((data[(s+1):(2*s)]-data[1:s])/s)
+  #Menghitung nilai awal pemulusan musiman
+  S    <- data-L[1]
+  #Menghitung Pemulusan Ekponensial, Estimasi Tren, dan estimasi musiman
+  for (t in (panjangmusim+1):length(data)){
+    if(t==panjangmusim+1){
+      #Menghitung Pemulusan Ekponensial
+      L[t] <- alpha*(data[t]-S[t-s])+(1-alpha)*(L[1]+B[1])
+      #Estimasi Tren
+      B[t] <- beta*(L[t]-Ls)+(1-beta)*(B[1])
+      #Estimasi musiman
+      S[t]<- gamma*(data[t]-L[t])+(1-gamma)*(S[t-s])
+    }
+    else {
+      #Menghitung Pemulusan Ekponensial
+      L[t] <- alpha*(data[t]-S[t-s])+(1-alpha)*(L[t-1]+B[t-1])
+      #Estimasi Tren
+      B[t] <- beta*(L[t]-L[t-1])+(1-beta)*(B[t-1])
+      #Estimasi musiman
+      S[t]<- gamma*(data[t]-L[t])+(1-gamma)*(S[t-s])
+    }
+  }
+  #Menghitung peramalan data aktual
+  for (t in (s+1):length(data)){
+    Ramalan[t] <- L[t] + B[t] + S[t-s]
+  }
+  #Membuat vektor Precentage Error : PE
+  PE <- c()
+  #Menghitung PE
+  for (i in (s+1):length(data)){
+    PE[i] = abs(Ramalan[i]-data[i])/data[i]*100
+  }
+  #Menghitung MAPE
+  MAPE <- mean(PE, na.rm = TRUE)
+  MAPE
+  #Membuat vektor untuk peramalan n periode kedepan : Forecast
+  Forecast <- c()
+  #Membuat Peramalan n periode kedepan 
+  for (i in 1:n){
+    Forecast[i] = L[length(data)] + n*(B[length(data)]) + S[length(data)+n-s]
+  }
+  #Membuat data frame output : Hasil Perhitungan
+  Hasil_Perhitungan <-  data.frame(Data = data, L,B,S,Ramalan, PE)
+  #Membuat data frame parameter
+  parameter <- data.frame(Alpha = alpha, Beta = beta, Gamma = gamma)
+  #mereturn output :
+  return(list(Hasil_Perhitungan = Hasil_Perhitungan, MAPE = MAPE, 
+              Peramalan = Forecast, Parameter = parameter, Panjang_Musim = s))
+}
