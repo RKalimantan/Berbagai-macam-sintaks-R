@@ -1,0 +1,31 @@
+#r-AGO
+grey_transf <- function(data, r){
+  yr <- c()
+  
+  for (k in 1:length(data)){
+    yrk <- c()
+    for (i in 1:k){
+      if (i==k){
+        ribet=1
+      }
+      else{
+        ribet = factorial(k-i+r-1)/(factorial(r-1)*factorial(k-i))
+      }
+      yrk[i]=ribet*data[i]
+    }
+    yr[k] = sum(yrk) 
+  }
+  return(yr)
+}
+
+#I-AGO 
+grey_untrans <- function(datatrans, r){
+  if (r==1){
+    data = c(datatrans[1],diff(datatrans))
+  }
+  else {
+    data = grey_transf(datatrans,1-r)
+    data = c(data[1],diff(data))
+    return(data)
+  }
+}
