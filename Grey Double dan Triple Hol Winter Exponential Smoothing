@@ -1,0 +1,128 @@
+Grey_DES <- function(data, r = 0.6, alpha = 0.5, 
+                     beta = 0.5, n = 5) {
+  #Mentransformasi data : Xr
+  datatrans <- grey_transf(data,r)
+  #Membuat Vektor Smoothing Pertama : St
+  St <- c()
+  #Menghitung nilai Smoothing Pertama
+  St[1] = datatrans[1]
+  for (i in 2: length(datatrans)) {
+    St[i] = (alpha*datatrans[i]) + ((1-alpha)*St[i-1])
+  }
+  #Membuat Vektor Smoothing Kedua : St2
+  St2 <- c()
+  #Menghitung nilai Smoothing Kedua
+  St2[1] = datatrans[1]
+  for (i in 2: length(datatrans)) {
+    St2[i] = (beta*St[i]) + ((1-alpha)*St2[i-1])
+  }
+  #Membuat Vektor Konstanta dan Slope serta jumlahnya : a, b, dan c
+  a <- c()
+  b <- c()
+  c <- c()
+  #Menghitung Konstanta dan Slope serta jumlahnya
+  for (i in 2:length(data)){
+    a[i] = 2*St[i]-St2[i]
+    b[i] = alpha/(1-alpha)*(St[i]-St2[i])
+    c[i] = a[i] + b[i]
+  }
+  #Mengembalikan data ramalan Xr menjadi X0
+  Ramalan <- c(c[1],grey_untrans(c[2:length(c)],r))
+  #Membuat vektor Precentage Error : PE
+  PE <- c()
+  #Menghitung PE
+  for (i in 2:length(data)){
+    PE[i] = abs(Ramalan[i]-data[i])/data[i]*100
+  }
+  #Menghitung MAPE
+  MAPE <- mean(PE, na.rm = TRUE)
+  #Membuat Vektor Peramalan n periode ke depan : Ramalan
+  Forecast <- c()
+  #Menghitung Peramalan n Periode kedepan (masih dalam bentuk xr)
+  for (i in 1:n) {
+    Forecast[i] = a[length(data)] + (b[length(data)]*i)
+  }
+  #Mentransformasi Peramalan data kedalam bentuk xo
+  Forecast_xo <- c(Ramalan[length(Ramalan)],
+                                       grey_untrans(Forecast,r)[-1])
+  #Membuat Data Frame Output : Hasil_Perhitungan
+  Hasil_Perhitungan = data.frame(Data = data, Grey_data = datatrans,
+                                 St = St, St2 = St2, a = a, b = b,  
+                                 Ft_Xr= c, Ft_xo = Ramalan, PE = PE)
+  #Membuat List Output :list
+  list = list(Hasil_Perhitungan = Hasil_Perhitungan,
+              MAPE = MAPE, Forecasting = Forecast_xo)
+  #Mereturn Output
+  return(list)
+}
+
+Grey_TES <- function(data,s,r=0.2, alpha = 0.5,
+                     beta = 0.5,gamma = 0.5, n = 5) {
+  #Mentransformasi data : Xr
+  datatrans <- grey_transf(data,r)
+  #Membuat Vektor pemulusan baru :L
+  L <- c()
+  #Membuat Vektor estimasi tren
+  B <- c()
+  #Membuat vektor Peramalan Data AKtual :F
+  Ramalan <- c()
+  # Menghitug nilai awal pemulusan ekponensial
+  L[1] <- mean(datatrans[1:s])
+  #Menghitung milai awal pemulusan tren
+  B[1] <- mean((datatrans[(s+1):(2*s)]-datatrans[1:s])/s)
+  #Menghitung nilai awal pemulusan musiman
+  S    <- datatrans-Ls
+  #Menghitung Pemulusan Ekponensial, Estimasi Tren, dan estimasi musiman
+  for (t in (panjangmusim+1):length(data)){
+    if(t==panjangmusim+1){
+      #Menghitung Pemulusan Ekponensial
+      L[t] <- alpha*(datatrans[t]-S[t-s])+(1-alpha)*(L[1]+B[1])
+      #Estimasi Tren
+      B[t] <- beta*(L[t]-Ls)+(1-beta)*(B[1])
+      #Estimasi musiman
+      S[t]<- gamma*(datatrans[t]-L[t])+(1-gamma)*(S[t-s])
+    }
+    else {
+      #Menghitung Pemulusan Ekponensial
+      L[t] <- alpha*(datatrans[t]-S[t-s])+(1-alpha)*(L[t-1]+B[t-1])
+      #Estimasi Tren
+      B[t] <- beta*(L[t]-L[t-1])+(1-beta)*(B[t-1])
+      #Estimasi musiman
+      S[t]<- gamma*(datatrans[t]-L[t])+(1-gamma)*(S[t-s])
+    }
+  }
+  #Menghitung peramalan data aktual Xr
+  for (t in (s+1):length(data)){
+    Ramalan[t] <- L[t] + B[t] + S[t-s]
+  }
+  #Mengembalikan FtXr menjadi Ftxo
+  Ramalan_Xo <- c(Ramalan[1:s],grey_untrans(Ramalan[(s+1):length(data)],r))
+  #Membuat vektor Precentage Error : PE
+  PE <- c()
+  #Menghitung PE
+  for (i in (s+1):length(data)){
+    PE[i] = abs(Ramalan_Xo[i]-data[i])/data[i]*100
+  }
+  #Menghitung MAPE
+  MAPE <- mean(PE, na.rm = TRUE)
+  MAPE
+  #Membuat vektor untuk peramalan n periode kedepan : Forecast
+  Forecast <- c()
+  #Membuat Peramalan n periode kedepan dalam bentuk Xr
+  for (i in 1:n){
+    Forecast[i] = L[length(data)] + n*(B[length(data)]) + S[length(data)+n-s]
+  }
+  #Mengembalikan Peramalan n periode ke depan ke bentuk xo
+  Forecast_xo <-  c(Ramalan_Xo[length(data)],grey_untrans(Forecast,r)[-1])
+  #Membuat data frame output : Hasil Perhitungan
+  Hasil_Perhitungan <-  data.frame(Data = data,Data_Xr = datatrans,
+                                   L,B,S,Ramalan_Xr = Ramalan,
+                                   Ramalan_Xo,
+                                   PE)
+  #Membuat data frame parameter
+  parameter <- data.frame(Alpha = alpha, Beta = beta, Gamma = gamma)
+  #mereturn output :
+  return(list(Hasil_Perhitungan = Hasil_Perhitungan, MAPE = MAPE, 
+              Peramalan = Forecast, Parameter = parameter, Panjang_Musim = s))
+} 
+
