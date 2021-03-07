@@ -1,128 +1,232 @@
-Grey_DES <- function(data, r = 0.6, alpha = 0.5, 
-                     beta = 0.5, n = 5) {
-  #Mentransformasi data : Xr
-  datatrans <- grey_transf(data,r)
-  #Membuat Vektor Smoothing Pertama : St
-  St <- c()
-  #Menghitung nilai Smoothing Pertama
-  St[1] = datatrans[1]
-  for (i in 2: length(datatrans)) {
-    St[i] = (alpha*datatrans[i]) + ((1-alpha)*St[i-1])
+grey_transf <- function(data, r){
+  yr <- c()
+  
+  for (k in 1:length(data)){
+    yrk <- c()
+    for (i in 1:k){
+      if (i==k){
+        ribet=1
+      }
+      else{
+        ribet = factorial(k-i+r-1)/(factorial(r-1)*factorial(k-i))
+      }
+      yrk[i]=ribet*data[i]
+    }
+    yr[k] = sum(yrk) 
   }
-  #Membuat Vektor Smoothing Kedua : St2
-  St2 <- c()
-  #Menghitung nilai Smoothing Kedua
-  St2[1] = datatrans[1]
-  for (i in 2: length(datatrans)) {
-    St2[i] = (beta*St[i]) + ((1-alpha)*St2[i-1])
-  }
-  #Membuat Vektor Konstanta dan Slope serta jumlahnya : a, b, dan c
-  a <- c()
-  b <- c()
-  c <- c()
-  #Menghitung Konstanta dan Slope serta jumlahnya
-  for (i in 2:length(data)){
-    a[i] = 2*St[i]-St2[i]
-    b[i] = alpha/(1-alpha)*(St[i]-St2[i])
-    c[i] = a[i] + b[i]
-  }
-  #Mengembalikan data ramalan Xr menjadi X0
-  Ramalan <- c(c[1],grey_untrans(c[2:length(c)],r))
-  #Membuat vektor Precentage Error : PE
-  PE <- c()
-  #Menghitung PE
-  for (i in 2:length(data)){
-    PE[i] = abs(Ramalan[i]-data[i])/data[i]*100
-  }
-  #Menghitung MAPE
-  MAPE <- mean(PE, na.rm = TRUE)
-  #Membuat Vektor Peramalan n periode ke depan : Ramalan
-  Forecast <- c()
-  #Menghitung Peramalan n Periode kedepan (masih dalam bentuk xr)
-  for (i in 1:n) {
-    Forecast[i] = a[length(data)] + (b[length(data)]*i)
-  }
-  #Mentransformasi Peramalan data kedalam bentuk xo
-  Forecast_xo <- c(Ramalan[length(Ramalan)],
-                                       grey_untrans(Forecast,r)[-1])
-  #Membuat Data Frame Output : Hasil_Perhitungan
-  Hasil_Perhitungan = data.frame(Data = data, Grey_data = datatrans,
-                                 St = St, St2 = St2, a = a, b = b,  
-                                 Ft_Xr= c, Ft_xo = Ramalan, PE = PE)
-  #Membuat List Output :list
-  list = list(Hasil_Perhitungan = Hasil_Perhitungan,
-              MAPE = MAPE, Forecasting = Forecast_xo)
-  #Mereturn Output
-  return(list)
+  return(yr)
 }
 
-Grey_TES <- function(data,s,r=0.2, alpha = 0.5,
-                     beta = 0.5,gamma = 0.5, n = 5) {
+grey_untrans <- function(datatrans, r){
+  if (r==1){
+    data = c(datatrans[1],diff(datatrans))
+  }
+  else {
+    data = grey_transf(datatrans,1-r)
+    data = c(data[1],diff(data))
+    return(data)
+  }
+}
+
+Grey_DES <- function(data, r = 0.6, alpha = 0.5, 
+                     beta = 0.5, n = 5, tipe = "holt") {
   #Mentransformasi data : Xr
   datatrans <- grey_transf(data,r)
+  if (tipe == "holt"){
+    #Membuat Vektor Smoothing Pertama dan kedua: St dan St2
+    St <- c()
+    St2 <- c()
+    #Menghitung nilai Smoothing Pertama dan kedua
+    St[1] = datatrans[1]
+    St2[1] = datatrans[2]-datatrans[1]
+    for (i in 2:length(datatrans)) {
+      St[i] = (alpha*datatrans[i]) + ((1-alpha)*(St[i-1]+St2[i-1]))
+      St2[i] = beta*(St[i]-St[i-1]) + ((1-beta)*St2[i-1])
+    }
+    #Membuat vektor untuk peramalan data aktual : Ft
+    Ft <- c()
+    #menghitung Peramalan data Aktual dan n periode ke depan
+    for (i in 2:(length(datatrans)+n)){
+      if (i <= length(datatrans)){
+        Ft[i] <- St[i-1] + St2[i-1]
+      } else {
+        Ft[i] <- St[length(datatrans)] + St2[length(datatrans)]*(i-length(datatrans))
+      }
+    }
+    #Transformasi Ft  ke dalam bentuk IAGO
+    Ft_Iago <- c(NA, grey_untrans(Ft[-1],r))
+    #hasil Peramaln data aktual
+    Ft_aktual <- Ft_Iago[1:length(datatrans)]
+    #Hasil peramalan n periode ke depan
+    Ft_n <- Ft_Iago[length(data):(length(datatrans)+n)]
+    #Menghitung Percentage Error : PE
+    PE <- (data-Ft_aktual)/data*100
+    #Menghitung MAPE
+    MAPE <- mean(abs(PE), na.rm = TRUE)
+    #Menghitung Peramalan n Periode kedepan
+    Hasil_Perhitungan <- data.frame(Data = data, 
+                                    St1 = St,
+                                    St2,
+                                    Ft_Rago =Ft[1:length(data)] ,
+                                    Ft_Iago = Ft_aktual,
+                                    PE)
+    return(list(Hasil_Perhitungan = Hasil_Perhitungan, MAPE = MAPE, 
+                Ft_n_periode =Ft_n))
+  } else if (tipe == "brown"){
+    #Membuat Vektor Smoothing Pertama : St
+    St <- c()
+    #Menghitung nilai Smoothing Pertama
+    St[1] = datatrans[1]
+    for (i in 2: length(data)) {
+      St[i] = (alpha*datatrans[i]) + ((1-alpha)*St[i-1])
+    }
+    #Membuat Vektor Smoothing Kedua : St2
+    St2 <- c()
+    #Menghitung nilai Smoothing Kedua
+    St2[1] = datatrans[1]
+    for (i in 2: length(data)) {
+      St2[i] = (alpha*St[i]) + ((1-alpha)*St2[i-1])
+    }
+    #Membuat Vektor Konstanta dan Slope serta jumlahnya : a, b, dan c
+    a <- c()
+    b <- c()
+    c <- c()
+    #Menghitung Konstanta dan Slope serta jumlahnya dan 
+    #juga untuk n periode kedepan
+    for (i in 1:(length(datatrans)+n-1)){
+      if (i <=length(data)){
+        a[i] = 2*St[i]-St2[i]
+        b[i] = alpha/(1-alpha)*(St[i]-St2[i])
+        Ft[i+1] = a[i] + b[i]
+      } else {
+        Ft[i+1] = a[length(data)] + b[length(data)]*(i-length(data)+1)
+      }
+    }
+    #mengembalikan Ft kedalam bentuk IAGO : Ft_Iago
+    Ft_Iago <- c(NA, grey_untrans(Ft[-1],r))
+    #hasil Peramalan data aktual
+    Ft_aktual <- Ft_Iago[1:length(datatrans)]
+    #Hasil peramalan n periode ke depan
+    Ft_n <- Ft_Iago[length(data):(length(datatrans)+n)]
+    #Menghitung PE
+    PE <- (Ft_aktual-data)/data*100
+    #Menghitung MAPE
+    MAPE <- mean(PE, na.rm = TRUE)
+    #Membuat Vektor Peramalan n periode ke depan : F
+    F <- c()
+    #Menghitung Peramalan n Periode kedepan
+    for (i in 1:n) {
+      F[i] = a[length(data)] + (b[length(data)]*i)
+    }
+    Hasil_Perhitungan <- data.frame(Data = data, 
+                                    a = a,
+                                    b = b,
+                                    Ft_Rago = Ft[1:length(data)],
+                                    Ft_Iago = Ft_aktual,
+                                    PE)
+    return(list(Hasil_Perhitungan = Hasil_Perhitungan, MAPE = MAPE, 
+                Ft_n_periode = Ft_n))
+  }
+}
+
+Grey_TES <- function(dataasli,s=12, r = 0.6 ,alpha = 0.5,
+                beta = 0.5,
+                gamma = 0.5, n = 5, model = "aditif") {
+  data <- grey_transf(dataasli, r)
   #Membuat Vektor pemulusan baru :L
   L <- c()
   #Membuat Vektor estimasi tren
   B <- c()
-  #Membuat vektor Peramalan Data AKtual :F
-  Ramalan <- c()
+  #Membuat Vektor estimasi  musiman
+  S <-  c()
+  #Membuat vektor Peramalan Data AKtual dalam bentuk RAGO :Ramal
+  Ramal <- c()
   # Menghitug nilai awal pemulusan ekponensial
-  L[1] <- mean(datatrans[1:s])
+  L[1] <- mean(data[1:s])
   #Menghitung milai awal pemulusan tren
-  B[1] <- mean((datatrans[(s+1):(2*s)]-datatrans[1:s])/s)
+  B[1] <- mean((data[(s+1):(2*s)]-data[1:s])/s)
   #Menghitung nilai awal pemulusan musiman
-  S    <- datatrans-Ls
+  if (model == "aditif"){
+    S    <- data-L[1]
+  } else {
+    S    <- data/L[1]
+  }
   #Menghitung Pemulusan Ekponensial, Estimasi Tren, dan estimasi musiman
-  for (t in (panjangmusim+1):length(data)){
-    if(t==panjangmusim+1){
-      #Menghitung Pemulusan Ekponensial
-      L[t] <- alpha*(datatrans[t]-S[t-s])+(1-alpha)*(L[1]+B[1])
-      #Estimasi Tren
-      B[t] <- beta*(L[t]-Ls)+(1-beta)*(B[1])
-      #Estimasi musiman
-      S[t]<- gamma*(datatrans[t]-L[t])+(1-gamma)*(S[t-s])
+  for (t in (s+1):length(data)){
+    if(t==s+1){
+      if (model == "aditif"){
+        #Menghitung Pemulusan Ekponensial
+        L[t] <- alpha*(data[t]-S[t-s])+(1-alpha)*(L[1]+B[1])
+        #Estimasi Tren
+        B[t] <- beta*(L[t]-L[1])+(1-beta)*(B[1])
+        #Estimasi musiman
+        S[t]<- gamma*(data[t]-L[t])+(1-gamma)*(S[t-s])
+      } else {
+        #Menghitung Pemulusan Ekponensial
+        L[t] <- alpha*(data[t]/S[t-s])+(1-alpha)*(L[1]+B[1])
+        #Estimasi Tren
+        B[t] <- beta*(L[t]-L[1])+(1-beta)*(B[1])
+        #Estimasi musiman
+        S[t]<- gamma*(data[t]/L[t])+(1-gamma)*(S[t-s])
+      }
     }
     else {
-      #Menghitung Pemulusan Ekponensial
-      L[t] <- alpha*(datatrans[t]-S[t-s])+(1-alpha)*(L[t-1]+B[t-1])
-      #Estimasi Tren
-      B[t] <- beta*(L[t]-L[t-1])+(1-beta)*(B[t-1])
-      #Estimasi musiman
-      S[t]<- gamma*(datatrans[t]-L[t])+(1-gamma)*(S[t-s])
+      if (model == "aditif"){
+        #Menghitung Pemulusan Ekponensial
+        L[t] <- alpha*(data[t]-S[t-s])+(1-alpha)*(L[t-1]+B[t-1])
+        #Estimasi Tren
+        B[t] <- beta*(L[t]-L[t-1])+(1-beta)*(B[t-1])
+        #Estimasi musiman
+        S[t]<- gamma*(data[t]-L[t])+(1-gamma)*(S[t-s])
+      } else {
+        #Menghitung Pemulusan Ekponensial
+        L[t] <- alpha*(data[t]/S[t-s])+(1-alpha)*(L[t-1]+B[t-1])
+        #Estimasi Tren
+        B[t] <- beta*(L[t]-L[t-1])+(1-beta)*(B[t-1])
+        #Estimasi musiman
+        S[t]<- gamma*(data[t]/L[t])+(1-gamma)*(S[t-s])
+      }
     }
   }
-  #Menghitung peramalan data aktual Xr
-  for (t in (s+1):length(data)){
-    Ramalan[t] <- L[t] + B[t] + S[t-s]
+  #Menghitung peramalan data aktual
+  for (t in (s+1):(length(data)+n)){
+    if (t <= length(data)){
+      if (model == "aditif"){
+        Ramal[t] <- L[t-1] + B[t-1] + S[t-s]
+      } else {
+        Ramal[t] <- (L[t-1] + B[t-1]) * S[t-s]
+      }
+    } else {
+      if (model == "aditif"){
+        Ramal[t] <- L[length(data)] + (t-length(data))*B[length(data)] + S[t-s]
+      } else {
+        Ramal[t] <- (L[length(data)] + (t-length(data))*B[length(data)]) * S[t-s]
+      }
+    }
   }
-  #Mengembalikan FtXr menjadi Ftxo
-  Ramalan_Xo <- c(Ramalan[1:s],grey_untrans(Ramalan[(s+1):length(data)],r))
+  #Mentransformasi data Ramalan RAGO menjadi IAGO
+  ramalan <- c(Ramal[c(1:(s+1))],grey_untrans(Ramal[-c(1:(s+1))], r))
+  #Ramalan Data aktual
+  Ramalan <- ramalan[1:length(data)]
+  #Ramalan n periode ke depan
+  Forecast <- ramalan[(length(data)+1):length(ramalan)]
   #Membuat vektor Precentage Error : PE
   PE <- c()
   #Menghitung PE
   for (i in (s+1):length(data)){
-    PE[i] = abs(Ramalan_Xo[i]-data[i])/data[i]*100
+    PE[i] = abs(Ramalan[i]-data[i])/data[i]*100
   }
   #Menghitung MAPE
   MAPE <- mean(PE, na.rm = TRUE)
-  MAPE
-  #Membuat vektor untuk peramalan n periode kedepan : Forecast
-  Forecast <- c()
-  #Membuat Peramalan n periode kedepan dalam bentuk Xr
-  for (i in 1:n){
-    Forecast[i] = L[length(data)] + n*(B[length(data)]) + S[length(data)+n-s]
-  }
-  #Mengembalikan Peramalan n periode ke depan ke bentuk xo
-  Forecast_xo <-  c(Ramalan_Xo[length(data)],grey_untrans(Forecast,r)[-1])
   #Membuat data frame output : Hasil Perhitungan
-  Hasil_Perhitungan <-  data.frame(Data = data,Data_Xr = datatrans,
-                                   L,B,S,Ramalan_Xr = Ramalan,
-                                   Ramalan_Xo,
-                                   PE)
+  Hasil_Perhitungan <-  data.frame(Data = dataasli, 
+                                   Data_IAGO = data
+                                   , L,B,S,Ramalan_Rago = Ramal[1:length(data)],
+                                   Ramalan_IAGO = Ramalan, PE)
   #Membuat data frame parameter
   parameter <- data.frame(Alpha = alpha, Beta = beta, Gamma = gamma)
   #mereturn output :
   return(list(Hasil_Perhitungan = Hasil_Perhitungan, MAPE = MAPE, 
-              Peramalan = Forecast, Parameter = parameter, Panjang_Musim = s))
+              Peramalan_RAGO = Ramal[(length(data)+1):length(Ramal)],
+              Peramalan_IAGO = Forecast, Parameter = parameter, Panjang_Musim = s))
 } 
-
