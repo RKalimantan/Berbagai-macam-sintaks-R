@@ -1,0 +1,342 @@
+data <- read.table(file.choose(),header = T)
+data 
+#Menentukan nilai D1=0.05 dan D2=0.05 : D
+D <- c(0.05, 0.05)
+D
+#Nilai maksimum data : Maks
+Maks <- max(data)
+
+Maks
+#Nilai Minimum data : Min
+Min <- min(data)
+Min
+#Membuat Himpunan Semesta : U
+U <- c(Min-D[1],Maks+D[2])
+U
+#Menghitung Rata-rata selisih Mutlak :SM
+SM <- c(NA,abs(diff(data)))
+SM
+#Menghitung rata-rata selisih mutlak : av
+av <- mean(SM, na.rm=TRUE)
+av
+#Menghitung Nilai Tengah : B
+B <- av/2
+B
+#Menentukan Base Interval
+if (B >= 0.1 && B <= 1 ){
+  Base <- 0.1
+} else if (B >= 1.1 && B <= 10 ) {
+  Base <-  1
+} else if (B >= 11 && B <= 100 ) {
+  Base <- 10
+} else if (B >= 101 && B <= 1000 ) {
+  Base <- 100
+}
+Base
+#Menghitung Panjang Interval : I
+I <- round(B, digits = 2)
+I
+#Menghitung banyaknya kelas : M
+M <- diff(U)/I
+M
+#Menghitung Himpunan Fuzzy : u
+u <- matrix(nrow = M, ncol = 2) #Membuat matriks u
+for (i in 1:M) {
+  u[i,1] <- U[1] + (i-1)*I
+  u[i,2] <- U[1] + i*I
+}
+u
+#Membuat Himpunan Fuzzy A : A
+A <- matrix(nrow = M, ncol = 4) #Membuat matriks A
+for (i in 1:M){
+  A[i,1] <- u[i,1]-I
+  A[i,2] <- u[i,1]
+  A[i,3] <- u[i,1]+I
+  A[i,4] <- u[i,1]+2*I
+}
+A
+#Menentukan Fuzzyfikasi : fuzzyfikasi
+fuzzyfikasi <- c()  #Membuat vektor fuzzyfikasi
+for (i in 1:length(data)){
+  for (j in 1:M){
+    if (data[i]>=u[j,1] & data[i] < u[j,2]){
+      fuzzyfikasi[i] <- j
+      break
+    }
+    else {
+      next
+    }
+  }
+}
+Output_Fuzzyfikasi <- paste("A",fuzzyfikasi,sep="")
+Output_Fuzzyfikasi 
+#Menentukan Fuzzy Relationship : FLR
+FLR <- data.frame(Currentstate = fuzzyfikasi, Nextstate = c(fuzzyfikasi[-1],NA))
+Output_FLR <- FLR
+Output_FLR$Currentstate <- paste("A", FLR$Currentstate, sep ="")
+Output_FLR$Nextstate <- paste("A", FLR$Nextstate, sep ="")
+Output_FLR
+#Membuat FLRG
+FLRG <- list()
+for (i in 1:M) {
+  FLRG[[i]] <- unique(FLR$Nextstate[FLR$Currentstate==i])
+  if(length(FLRG[[i]])==0|is.na(FLRG[[i]][1])){
+    FLRG[[i]] = 0
+  }
+}
+#Membuat Output FLRG : Output_FLRG
+FLRG_bantuan <- FLRG
+Output_FLRG  <- data.frame()
+for (i in 1:length(FLRG)){
+  FLRG_bantuan[[i]] <- paste("A", FLRG[[i]], sep = "")
+  Cs <- paste("A",i,sep="")
+  Cs <- paste(Cs,"->", sep = "")
+  for (j in 1:length(FLRG_bantuan[[i]])){
+    if (j==1) {
+      Output_FLRG[i,1] <- paste(Cs,FLRG_bantuan[[i]][j], sep=" ")
+    }
+    else {
+      Output_FLRG[i,1] <- paste(Output_FLRG[i,1],FLRG_bantuan[[i]][j], sep=", ")
+    }
+   
+  }
+}
+Output_FLRG
+#Membuat Vektor Kosong untuk nilai Y : Y
+Y <-  c()
+#Menghitung nilai Y
+for (t in 3:length(data)){
+  Y[t] <- (data[t]-data[t-1])-(data[t-1]-data[t-2])
+}
+Y
+
+#Membuat vektor status untuk membantu logika algoritma Novel : status
+status<- c()
+#Melakukan Peramalan
+Ramalan <- c() #Membuat Vektor Kosong untuk ramalan data aktual 
+#Melakukan Peramalan Untuk ALgoritma Novel
+for (t in 2:(length(data)+1)){
+  #melakukan peramalan saat t==2 (Saat data(t-2) tidak ada)
+  if (t == 2){
+    #Logika Ketentuan 1
+    if (FLRG[[FLR$Currentstate[t-1]]][1]==0){
+      Ramalan[t] <- mean(u[FLR$Currentstate[t-1],])
+    } 
+    #Logika Ketentuan 2
+    else if (length(FLRG[[FLR$Currentstate[t-1]]]) == 1 && (FLRG[[FLR$Currentstate[t-1]]]!=0)){
+      z1 <- abs(data[t]-data[t-1])/2
+      #Logika aturan i poin 1
+      if (z1 > (max(u[FLR$Nextstate[t-1],])-max(u[FLR$Nextstate[t-1],]))/2){
+        Ramalan[t] <- min(u[FLR$Nextstate[t-1],]) + 0.75*(max(u[FLR$Nextstate[t-1],])-
+                                                            min(u[FLR$Nextstate[t-1],]))
+      }
+      #Logika aturan i poin 2
+      else if (z1 == (max(u[FLR$Nextstate[t-1],])-max(u[FLR$Nextstate[t-1],]))/2){
+        Ramalan[t] <- min(u[FLR$Nextstate[t-1],]) + 0.5*(max(u[FLR$Nextstate[t-1],])-
+                                                           min(u[FLR$Nextstate[t-1],]))
+      }
+      #Logika aturan i poin 3
+      else if (z1 <- (max(u[FLR$Nextstate[t-1],])-max(u[FLR$Nextstate[t-1],]))/2){
+        Ramalan[t] <- min(u[FLR$Nextstate[t-1],]) + 0.25*(max(u[FLR$Nextstate[t-1],])-
+                                                            min(u[FLR$Nextstate[t-1],]))
+      }
+    }
+    #Logika Ketentuan 3
+    else if (length(FLRG[[FLR$Currentstate[t-1]]])>1) {
+      for (i in 1:length(FLRG[[FLR$Currentstate[t-1]]])){
+        if (abs(FLRG[[FLR$Currentstate[t-1]]][i]-FLR$Currentstate[t-1])<=2){
+          status[t] <- "OTM"
+          next()
+        }
+        else {
+          status[t] <- "OTO"
+          break()
+        }
+      }
+      Ramalan[t] <- 0
+      #Logika Ketentuan 3 poin a
+      if (status[t] == "OTM"){
+        for (i in 1:length(FLRG[[FLR$Currentstate[t-1]]])){
+          Ramalan[t] <- Ramalan[t] + ((A[FLRG[[FLR$Currentstate[t-1]]][i],2]+
+                                         A[FLRG[[FLR$Currentstate[t-1]]][i],3])/2)/
+            length(FLRG[[FLR$Currentstate[t-1]]])
+        }  
+      }
+      #Logika Ketentuan 3 poin b (Kembali ke aturan i)
+      else if (status[t]=="OTO"){
+        z1 <- abs(data[t]-data[t-1])/2
+        #Logika aturan i poin 1
+        if (z1 > (max(u[FLR$Nextstate[t-1],])-max(u[FLR$Nextstate[t-1],]))/2){
+          Ramalan[t] <- min(u[FLR$Nextstate[t-1],]) + 0.75*(max(u[FLR$Nextstate[t-1],])-
+                                                              min(u[FLR$Nextstate[t-1],]))
+        }
+        #Logika aturan i poin 2
+        else if (z1 == (max(u[FLR$Nextstate[t-1],])-max(u[FLR$Nextstate[t-1],]))/2){
+          Ramalan[t] <- min(u[FLR$Nextstate[t-1],]) + 0.5*(max(u[FLR$Nextstate[t-1],])-
+                                                             min(u[FLR$Nextstate[t-1],]))
+        }
+        #Logika aturan i poin 3
+        else if (z1 <- (max(u[FLR$Nextstate[t-1],])-max(u[FLR$Nextstate[t-1],]))/2){
+          Ramalan[t] <- min(u[FLR$Nextstate[t-1],]) + 0.25*(max(u[FLR$Nextstate[t-1],])-
+                                                              min(u[FLR$Nextstate[t-1],]))
+        }
+      }
+    }
+  } 
+  #Melakukan Peramalan 1 periode ke depan 
+  else if (t == length(data)+1){
+   Ramalan[t] <- (A[FLR$Currentstate[t-1],2]+A[FLR$Currentstate[t-1],3])/2
+  } 
+  #Melakukan Peramalan saat t!=2 (saat data(t-2) diketahui)
+  else  { 
+    #Logika Ketentuan 1
+    if (FLRG[[FLR$Currentstate[t-1]]][1]==0){
+    Ramalan[t] <- mean(u[FLR$Currentstate[t-1],])
+    }
+    #Logika ketentuan 2
+    else if (length(FLRG[[FLR$Currentstate[t-1]]]) == 1 && (FLRG[[FLR$Currentstate[t-1]]]!=0)){
+      #Logika aturan ii
+      if ((Y[t])>0) {
+        z1 <- 2*abs(Y[t]) + data[t-1]
+        z2 <- data[t-1] - 2*abs(Y[t])
+        z3 <- abs(Y[t])/2 + data[t-1]
+        z4 <- data[t-1] - abs(Y[t]/2)
+        #Logika aturan ii poin 1
+        if ((z1 >= min(u[FLR$Nextstate[t-1],]) && z1 < max(u[FLR$Nextstate[t-1],]))
+            | (z2 >= min(u[FLR$Nextstate[t-1],]) && z2 < max(u[FLR$Nextstate[t-1],]))){
+          Ramalan[t] <- min(u[FLR$Nextstate[t-1],]) + 0.75*(max(u[FLR$Nextstate[t-1],])-
+                                                              min(u[FLR$Nextstate[t-1],]))
+        }
+        #Logika aturan ii poin 2
+        else if ((z3 >= min(u[FLR$Nextstate[t-1],]) && z3 < max(u[FLR$Nextstate[t-1],]))
+                   | (z4 >= min(u[FLR$Nextstate[t-1],]) && z4 < max(u[FLR$Nextstate[t-1],]))){
+          Ramalan[t] <- min(u[FLR$Nextstate[t-1],]) + 0.25*(max(u[FLR$Nextstate[t-1],])-
+                                                              min(u[FLR$Nextstate[t-1],]))
+        } 
+        #Logika aturan ii poin 3
+        else {
+          Ramalan[t] <- min(u[FLR$Nextstate[t-1],])+
+            0.5*(max(u[FLR$Nextstate[t-1],])-min(u[FLR$Nextstate[t-1],]))
+        }
+      }
+      #Logika Aturan iii
+      else if ((Y[t])<0){
+        z3 <- 2*abs(Y[t])+data[t-1]
+        z4 <- data[t-1]-2*abs(Y[t])
+        z1 <- abs(Y[t])/2 + data[t-1]
+        z2 <- data[t-1] - abs(Y[t]/2)
+        #Logika aturan iii poin 1
+        if ((z1 >= min(u[FLR$Nextstate[t-1],]) && z1 < max(u[FLR$Nextstate[t-1],]))
+            | (z2 >= min(u[FLR$Nextstate[t-1],]) && z2 < max(u[FLR$Nextstate[t-1],]))){
+          Ramalan[t] <- min(u[FLR$Nextstate[t-1],]) + 0.25*(max(u[FLR$Nextstate[t-1],])-
+                                                              min(u[FLR$Nextstate[t-1],]))
+        } 
+        #Logika aturan iii poin 2
+        else if ((z3 >= min(u[FLR$Nextstate[t-1],]) && z3 < max(u[FLR$Nextstate[t-1],]))
+                   | (z4 >= min(u[FLR$Nextstate[t-1],]) && z4 < max(u[FLR$Nextstate[t-1],]))){
+          Ramalan[t] <- min(u[FLR$Nextstate[t-1],]) + 0.75*(max(u[FLR$Nextstate[t-1],])-
+                                                              min(u[FLR$Nextstate[t-1],]))
+        } 
+        #Logika aturan iii poin 1
+        else {
+          Ramalan[t] <-min(u[FLR$Nextstate[t-1],]) +
+            0.5*(max(u[FLR$Nextstate[t-1],])-min(u[FLR$Nextstate[t-1],]))
+        }
+      }
+    } 
+    #Logika Ketentuan 3
+    else if (length(FLRG[[FLR$Currentstate[t-1]]])>1){
+      for (i in 1:length(FLRG[[FLR$Currentstate[t-1]]])){
+        if (abs(FLRG[[FLR$Currentstate[t-1]]][i]-FLR$Currentstate[t-1])<=2){
+          status[t] <- "OTM"
+          next()
+        }
+        else {
+          status[t] <- "OTO"
+          break()
+        }
+      }
+      Ramalan[t] <- 0
+      #Logika Ketentuan 3 poin A
+      if (status[t] == "OTM"){
+        for (i in 1:length(FLRG[[FLR$Currentstate[t-1]]])){
+          Ramalan[t] <- Ramalan[t] + ((A[FLRG[[FLR$Currentstate[t-1]]][i],2]+
+                                         A[FLRG[[FLR$Currentstate[t-1]]][i],3])/2)/
+            length(FLRG[[FLR$Currentstate[t-1]]])
+        }  
+      }
+      #Logika Ketentuan 3 poin B (Kembali ke Ketentuan 2)
+      else if (status[t]=="OTO"){
+        #Logika aturan ii
+        if ((Y[t])>0){
+          z1 <- 2*abs(Y[t]) + data[t-1]
+          z2 <- data[t-1] - 2*abs(Y[t])
+          z3 <- abs(Y[t])/2 + data[t-1]
+          z4 <- data[t-1] - abs(Y[t]/2)
+          #Logika aturan ii poin 1
+          if ((z1 >= min(u[FLR$Nextstate[t-1],]) && z1 < max(u[FLR$Nextstate[t-1],]))
+              | (z2 >= min(u[FLR$Nextstate[t-1],]) && z2 < max(u[FLR$Nextstate[t-1],]))){
+            Ramalan[t] <- min(u[FLR$Nextstate[t-1],]) + 0.75*(max(u[FLR$Nextstate[t-1],])-
+                                                                min(u[FLR$Nextstate[t-1],]))
+          } 
+          #Logika aturan ii poin 2
+          else if ((z3 >= min(u[FLR$Nextstate[t-1],]) && z3 < max(u[FLR$Nextstate[t-1],]))
+                     | (z4 >= min(u[FLR$Nextstate[t-1],]) && z4 < max(u[FLR$Nextstate[t-1],]))){
+            Ramalan[t] <- min(u[FLR$Nextstate[t-1],]) + 0.25*(max(u[FLR$Nextstate[t-1],])-
+                                                                min(u[FLR$Nextstate[t-1],]))
+          }
+          #Logika aturan ii poin 3
+          else {
+            Ramalan[t] <- min(u[FLR$Nextstate[t-1],])+
+              0.5*(max(u[FLR$Nextstate[t-1],])-min(u[FLR$Nextstate[t-1],]))
+          }
+        } 
+        #Logika aturan iii
+        else if ((Y[t])<0){
+          z3 <- 2*abs(Y[t])+data[t-1]
+          z4 <- data[t-1]-2*abs(Y[t])
+          z1 <- abs(Y[t])/2 + data[t-1]
+          z2 <- data[t-1] - abs(Y[t]/2)
+          #Logika aturan iii poin 1
+          if ((z1 >= min(u[FLR$Nextstate[t-1],]) && z1 < max(u[FLR$Nextstate[t-1],]))
+              | (z2 >= min(u[FLR$Nextstate[t-1],]) && z2 < max(u[FLR$Nextstate[t-1],]))){
+            Ramalan[t] <- min(u[FLR$Nextstate[t-1],]) + 0.25*(max(u[FLR$Nextstate[t-1],])-
+                                                                min(u[FLR$Nextstate[t-1],]))
+          } 
+          #Logika aturan iii poin 3
+          else if ((z3 >= min(u[FLR$Nextstate[t-1],]) && z3 < max(u[FLR$Nextstate[t-1],]))
+                     | (z4 >= min(u[FLR$Nextstate[t-1],]) && z4 < max(u[FLR$Nextstate[t-1],]))){
+            Ramalan[t] <- min(u[FLR$Nextstate[t-1],]) + 0.75*(max(u[FLR$Nextstate[t-1],])-
+                                                                min(u[FLR$Nextstate[t-1],]))
+          } 
+          #Logika aturan iii poin 3
+          else {
+            Ramalan[t] <-min(u[FLR$Nextstate[t-1],]) +
+              0.5*(max(u[FLR$Nextstate[t-1],])-min(u[FLR$Nextstate[t-1],]))
+          }
+        }
+      }
+    }
+  }
+}
+Ramalan
+
+
+#Menghitung Percentage error : PE
+PE <- c(NA,abs(data[-1]-Ramalan[c(-1, -(length(data)+1))])/data[-1]*100)
+#menghitung MAPE : MAPE
+MAPE <- mean(PE, na.rm = TRUE)
+MAPE
+
+Output_Keseluruhan <- data.frame(Data = data, 
+                                 SM,
+                                 Fuzzyfikasi = Output_Fuzzyfikasi,
+                                 Currentstate = Output_FLR$Currentstate,
+                                 Nextstate = Output_FLR$Nextstate,
+                                 Y = Y,
+                                 Ramalan = Ramalan[-length(Ramalan)],
+                                 PE)
+Output_Keseluruhan
+
+Ramalan_1_Periode_Kedepan <- Ramalan[length(Ramalan)]
+Ramalan_1_Periode_Kedepan
