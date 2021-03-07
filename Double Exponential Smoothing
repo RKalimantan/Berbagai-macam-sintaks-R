@@ -1,52 +1,86 @@
 #membuat Data
 data <- c(24, 34, 43, 44, 46, 56, 59, 67, 89, 65, 76, 65, 89, 90, 100)
 
-#membuat Fungsi DES
-DES <- function(data, alpha = 0.5, beta = 0.5, n = 5) {
-  #Membuat Vektor Smoothing Pertama : St
-  St <- c()
-  #Menghitung nilai Smoothing Pertama
-  St[1] = data[1]
-  for (i in 2: length(data)) {
-    St[i] = (alpha*data[i]) + ((1-alpha)*St[i-1])
+DES <- function(data, alpha = 0.5, beta = 0.5, n = 5, tipe = "holt") {
+  if (tipe == "holt"){
+    #Membuat Vektor Smoothing Pertama dan kedua: St dan St2
+    St <- c()
+    St2 <- c()
+    #Menghitung nilai Smoothing Pertama dan kedua
+    St[1] = data[1]
+    St2[1] = data[2]-data[1]
+    for (i in 2:length(data)) {
+      St[i] = (alpha*data[i]) + ((1-alpha)*(St[i-1]+St2[i-1]))
+      St2[i] = beta*(St[i]-St[i-1]) + ((1-beta)*St2[i-1])
+    }
+    #Membuat vektor untuk peramalan data aktual : Ft
+    Ft <- c()
+    #menghitung Peramalan data Aktual
+    for (i in 3:length(data)){
+      Ft[i] <- St[i-1] + St2[i-1]
+    }
+    #Menghitung Percentage Error : PE
+    PE <- (data-Ft)/data*100
+    #Menghitung MAPE
+    MAPE <- mean(abs(PE), na.rm = TRUE)
+    #Menghitung Peramalan n Periode kedepan
+    for (i in 1:n) {
+      F[i] = St[length(data)] + (St2[length(data)]*i)
+    }
+    Hasil_Perhitungan <- data.frame(Data = data, 
+                                    St1 = St,
+                                    St2,
+                                    Ft,
+                                    PE)
+    return(list(Hasil_Perhitungan = Hasil_Perhitungan, MAPE = MAPE, 
+                Ft_n_periode = F))
+  } else if (tipe == "brown"){
+    #Membuat Vektor Smoothing Pertama : St
+    St <- c()
+    #Menghitung nilai Smoothing Pertama
+    St[1] = data[1]
+    for (i in 2: length(data)) {
+      St[i] = (alpha*data[i]) + ((1-alpha)*St[i-1])
+    }
+    #Membuat Vektor Smoothing Kedua : St2
+    St2 <- c()
+    #Menghitung nilai Smoothing Kedua
+    St2[1] = data[1]
+    for (i in 2: length(data)) {
+      St2[i] = (alpha*St[i]) + ((1-alpha)*St2[i-1])
+    }
+    #Membuat Vektor Konstanta dan Slope serta jumlahnya : a, b, dan c
+    a <- c()
+    b <- c()
+    c <- c()
+    #Menghitung Konstanta dan Slope serta jumlahnya
+    for (i in 2:length(data)){
+      a[i] = 2*St[i]-St2[i]
+      b[i] = alpha/(1-alpha)*(St[i]-St2[i])
+      c[i] = a[i-1] + b[i-1]
+    }
+    #Membuat vektor Precentage Error : PE
+    PE <- c()
+    #Menghitung PE
+    for (i in 2:length(data)){
+      PE[i] = abs(c[i]-data[i])/data[i]*100
+    }
+    #Menghitung MAPE
+    MAPE <- mean(PE, na.rm = TRUE)
+    #Membuat Vektor Peramalan n periode ke depan : F
+    F <- c()
+    #Menghitung Peramalan n Periode kedepan
+    for (i in 1:n) {
+      F[i] = a[length(data)] + (b[length(data)]*i)
+    }
+    Hasil_Perhitungan <- data.frame(Data = data, 
+                                    a = a,
+                                    b = b,
+                                    Ft = c,
+                                    PE)
+    return(list(Hasil_Perhitungan = Hasil_Perhitungan, MAPE = MAPE, 
+                Ft_n_periode = F))
   }
-  #Membuat Vektor Smoothing Kedua : St2
-  St2 <- c()
-  #Menghitung nilai Smoothing Kedua
-  St2[1] = data[1]
-  for (i in 2: length(data)) {
-    St2[i] = (beta*St[i]) + ((1-alpha)*St2[i-1])
-  }
-  #Membuat Vektor Konstanta dan Slope serta jumlahnya : a, b, dan c
-  a <- c()
-  b <- c()
-  c <- c()
-  #Menghitung Konstanta dan Slope serta jumlahnya
-  for (i in 2:length(data)){
-    a[i] = 2*St[i]-St2[i]
-    b[i] = alpha/(1-alpha)*(St[i]-St2[i])
-    c[i] = a[i] + b[i]
-  }
-  #Membuat vektor Precentage Error : PE
-  PE <- c()
-  #Menghitung PE
-  for (i in 2:length(data)){
-    PE[i] = abs(c[i]-data[i])/data[i]*100
-  }
-  #Menghitung MAPE
-  MAPE <- mean(PE, na.rm = TRUE)
-  #Membuat Vektor Peramalan n periode ke depan : F
-  F <- c()
-  #Menghitung Peramalan n Periode kedepan
-  for (i in 1:n) {
-    F[i] = a[length(data)] + (b[length(data)]*i)
-  }
-  #Membuat Data Frame Output : Hasil_Perhitungan
-  Hasil_Perhitungan = data.frame(Data = data, St = St, St2 = St2, a = a, b = b, 'a+b' = c, PE = PE)
-  #Membuat List Output :list
-  list = list(Hasil_Perhitungan = Hasil_Perhitungan, MAPE = MAPE, Forecasting = F)
-  #Mereturn Output
-  return(list)
 }
 
 #Melakukan Peramalan
@@ -58,3 +92,5 @@ DES(data, alpha = 0.2, beta = 0.2 , n = 5)
 ##alpha adala parameter pemulusan pertama
 ##beta adalah parameter pemulusan kedua
 ##n adalah jumlah periode peramalan kedepan
+##Tipe adalah tipe DES yang digunakan yaitu brown atau holt
+
