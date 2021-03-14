@@ -1,0 +1,79 @@
+KHM <- function(data, k = 2, p = 2, maxiter = 10) {
+  #Menentukan pusat klaster awal : pusat
+  pusat <- data[(1:k),]
+  #Membuat vektor fungsi tujuan
+  KHM <- c()
+  #Mendefinisikan iterasi awal = 0
+  iter = 0
+  #Mendefinisikan banyak baris data : N
+  N = nrow(data)
+  #Melakukan iterasi sebanyak maxiter
+  for (iter in 1:maxiter){
+    #Menghitung fungsi tujuan
+    khm = 0
+    for (i in 1:N) {
+      a = 0
+      for (j in  1:k){
+        a <- a+ (1/((sum((abs(data[i,]-pusat[j,]))^p))^(1/p)))
+      }
+      khm = khm+ (k/a)
+    }
+    KHM[iter] <- khm
+    #membuat matriks nilai keanggotaan dan : m
+    m = matrix(data=0, ncol = k, nrow = nrow(data))
+    #menghitung nilai keanggotaan
+    for (i in 1:N){
+      for (j in 1:k){
+        b = 0
+        for (l in 1:k){
+          b = b + (sum((abs(data[i,]-pusat[l,]))^(-p-2)))^(1/(-p-2))
+        }
+        m[i,j] = (sum((abs(data[i,]-pusat[j,]))^(-p-2)))^(1/(-p-2))/b
+      }
+    }
+    #Membuat Vektor Bobot : w
+    w <- c()
+    #menghitung  nilai bobot 
+    for (i in 1:N){
+      b = 0
+      c = 0
+      for (l in 1:k){
+        b = b + (sum((abs(data[i,]-pusat[l,]))^(-p-2)))^(1/(-p-2))
+        c = c + (sum((abs(data[i,]-pusat[l,]))^(-p)))^(1/(-p))
+      }
+      w[i] = b/c^2
+    }
+    #Memperbarui titik pusat
+    for (i in 1:k){
+      pusat[i,] = colSums(m[,i]*w*data)/sum(m[,i]*w)
+    }
+  }
+  #membuat vektor klaster
+  klaster <- c()
+  #Membuat klaster
+  for (i in 1:N){
+    klaster[i] = which.max(m[i,])
+  }
+  #membuat list output
+  output <- list(Klaster = klaster,
+                 titik_pusat = pusat,
+                 derajat_Keanggotaan = m,
+                 bobot = w,
+                 KHM = KHM)
+  #meretun output
+  return(output)
+}
+
+
+KHM(data, k = 3, p = 2, maxiter = 10)
+
+
+**data : merupakan data dalam bentuk matriks atau data frame
+**k    : banyak klaster
+**p    : pangkat yang digunakan dalam menghitung norm jarak
+**maxiter : maksimal iterasi 
+
+Referensi Pembuatan Kode : 
+Made, I Widiartha.2011.STUDI KOMPARASI METODE KLASTERISASI DATA K-MEANS DAN K-HARMONIC MEANS.
+     Jurnal Ilmu Komputer Vol. 4 No.1. Bali
+            
