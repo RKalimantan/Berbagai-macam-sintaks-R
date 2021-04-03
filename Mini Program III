@@ -1,0 +1,73 @@
+data <- c(4,2,10,34,45,35,63,5,24,57,3)
+
+normalisasi <- function(data){
+  data_normalisasi <- (data-mean(data))/sqrt(var(data))
+  return(data_normalisasi)
+}
+
+normalisasi(data)
+
+minmax <- function(data, min_baru = 0, max_baru = 1){
+  data_minmax <- ((data-min(data))/(max(data)-min(data)))*(max_baru-min_baru)+min_baru
+  return(data_minmax)
+}
+minmax(data, min_baru = 5, max_baru = 10)      
+
+desimal_normalisasi <- function(data){
+  abs_max_data <- max(abs(data))
+  j = nchar(as.character(abs_max_data))
+  data_desimal <- data/10^(j)
+  return(data_desimal)
+}
+
+desimal_normalisasi(data)
+
+
+#Mean Absolute Percentage Error
+MAPE <- function(aktual, prediksi){
+  mape = mean(abs(aktual-prediksi)/aktual*100)
+  return(mape)
+}
+
+aktual = c(1,2,3,4,5)
+prediksi = c(1.1, 2.2, 3.3, 4.4, 5.5)
+MAPE(a,b)
+
+#Mean Absolute Deviation
+MAD <- function(aktual, prediksi){
+  mad <- mean(abs(aktual-prediksi))
+  return(mad)
+}
+MAD(aktual,prediksi)
+
+
+#Root Mean Square Error
+RMSE <- function(aktual, prediksi){
+  rmse <- sqrt(sum((aktual-prediksi)^2)/length(aktual))
+  return(rmse)
+}
+RMSE(aktual,prediksi)
+
+#Simetric Mean Absolute Percentage Error
+SMAPE <- function(aktual, prediksi){
+  smape = 100/length(aktual)*sum(abs(aktual-prediksi)/
+                                   ((abs(aktual)+abs(prediksi))/2))
+  return(smape)
+}
+
+SMAPE(aktual,prediksi)
+
+
+Ukuran.kesalahan <- function(aktual, prediksi){
+  mad <- mean(abs(aktual-prediksi))
+  rmse <- sqrt(sum((aktual-prediksi)^2)/length(aktual))
+  mape = mean(abs(aktual-prediksi)/aktual*100)
+  smape = 100/length(aktual)*sum(abs(aktual-prediksi)/
+                                   ((abs(aktual)+abs(prediksi))/2))
+  ukuran_kesalahan <- c(MAD = mad,
+                        RMSE = rmse,
+                        MAPE = mape,
+                        SMAPE = smape)
+  return(ukuran_kesalahan)
+}
+Ukuran.kesalahan(aktual,prediksi)
