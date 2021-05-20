@@ -1,0 +1,53 @@
+##K-fold 
+
+
+k.fold <- function(data, k) {
+  data_kfold = list()
+  n = ceiling(nrow(data)/k)
+  for (i in 1:k){
+    if (i < k){
+      data_kfold[[i]] = data[(((i-1)*n)+1):(i*n),]
+    } else {
+      data_kfold[[i]] = data[(((i-1)*n)+1):(nrow(data)),]
+    }
+  }
+  return(data_kfold)
+}
+
+k_fold <- function(data, k) {
+  no.sampel = list()
+  n = round(nrow(data)/k)
+  sisa = nrow(data) %% k
+  for (i in 1:k){
+    if (i < k){
+      no.sampel[[i]] = c(((i-1)*n)+1):(i*n)
+    } else {
+      no.sampel[[i]] = c(((i-1)*n+1):(nrow(data)-sisa))
+    }
+  }
+  for (i in 1:sisa){
+    no.sampel[[i]][n+1] = nrow(data)-sisa + i
+  }
+  return(no.sampel)
+}
+ 
+fold = k_fold(data, 5)
+
+
+#Get fold untuk mendapatkan data training dan testing pada fold-ke K
+get.fold <- function(data, fold, k = 1){
+  training <- data[fold[[k]],]
+  testing <- data[-(fold[[k]]),]
+  return(list(training=training,
+              testing=testing))
+}  
+
+get.fold(data, fold, k = 1) #k=1 merupakan fold ke 1, 
+#yang muncul nanti data training dan testing pada 1-fold
+
+get.fold(data, fold, k = 2) #k=1 merupakan fold ke 2, 
+#yang muncul nanti data training dan testing pada fold ke 2
+
+
+#selanjutnya tinggal diaplikasikan ke metode klasifikasi masing-masing.
+#ingin munculkan akurasi tiap fold silahkan dikombinasikan dengan program klasifikasi masing masing
